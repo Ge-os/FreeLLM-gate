@@ -1,4 +1,6 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, Any
+
+from app.utils.constants import TokenType
 
 
 class ModelCapabilities(BaseModel):
@@ -30,6 +32,9 @@ class ModelCapabilities(BaseModel):
 class ProviderConfig(BaseModel):
     """Merged provider config (apiKeys + models from the list-of-dicts structure)."""
 
+    base_url: str = Field(default="https://api.gemini.com/v1")
+    token_type: TokenType = Field(default=TokenType.BEARER)
+    token: str = Field(default="")
     api_keys: list[str] = Field(default_factory=list, alias="apiKeys")
     models: dict[str, ModelCapabilities | None] = Field(default_factory=dict)
     text_models: list[str] = Field(default_factory=list, alias="text-models")
