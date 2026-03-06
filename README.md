@@ -1,107 +1,84 @@
 # Free LLM Gate
 
-FreeLLM-gate is a universal gateway for free Large Language Model (LLM) API providers. It helps you overcome the limitations of individual free LLM APIs (such as rate limits per minute/day and lack of multithreading support) by aggregating multiple providers and tokens behind a single FastAPI-powered interface.
+FreeLLM Gate is a FastAPI API gateway for OpenAI-compatible free LLM providers.
 
-## Features
+It loads providers from `config.yaml`, chooses the best upstream using quota-aware scoring, and proxies requests through one unified API surface.
 
-- **Multi-provider support:** Easily add multiple LLM API providers using a simple YAML configuration.
-- **Multi-token support:** Use multiple tokens for a single provider to maximize throughput and avoid rate limits.
-- **Automatic load balancing:** Requests are distributed across available providers and tokens.
-- **Multithreading:** Enables concurrent generation, even if the underlying providers do not support it.
-- **Easy integration:** Exposes a universal API endpoint for your applications.
+## Implemented Architecture
 
-## Quick Start
+- OpenAI-compatible proxy endpoints (`/v1/...`)
+- Provider registry loaded from your YAML config
+- L7 routing/load balancing across providers and key slots
+- Quota/rate-limit tracking (Redis if available, in-memory fallback)
+- Optional gateway auth middleware (`GATEWAY_API_KEY`)
+- `/utils/transform_request` endpoint for route/debug preview
 
-1. **Clone the repository:**
-	```bash
-	git clone https://github.com/yourusername/FreeLLM-gate.git
-	cd FreeLLM-gate
-	```
+Routing score:
 
-2. **Configure providers and tokens:**
-	- Edit the `config.yaml` file to add your API keys/tokens for each provider. You can add multiple tokens per provider. Follow providers links *down below* or in [`config-example.yaml`](config-example.yaml) for more details.
-
-3. **Install dependencies:**
-	```bash
-	pip install -r requirements.txt
-	```
-
-4. **Run the FastAPI server:**
-	```bash
-	uvicorn main:app --reload
-	```
-
-5. **Send requests to the gateway:**
-	- Use the provided API endpoint to interact with LLMs via your configured providers.
-
-TODO: add POST examples for /generate, /embed and /ping endpoints
-
-## Configuration Example
-
-```yaml
-gemini:
-  - apiKeys: [..., ..., ...]# <-- Paste your API keys here
-  - models:
-  # Change model order if needed: fallback is from first to last
-  # Delete models you don't need or afraid of quality differ
-    - gemini-2.0-flash:
-      - input_token_limit: 1048576
-      - output_token_limit: 8192
-
-      - default_temperature: 1.0
-      - max_temperature: 2.0
-      - default_top_p: 0.95
-      - default_top_k: 40
-
-      - thinking: False
-      - vision: True
-      - tools: True
-
-      - requests_per_minute: 5
-      - token_per_minute: 250000
-      - requests_per_day: 20
-      - requests_per_month: None
+```text
+score = tokens_left - recent_requests * penalty
 ```
 
-## Get API Keys
-- Gemini: https://ai.google.dev/gemini-api/docs/get-started
-- Groq: https://www.groq.com/signup
-- Cerebras: https://www.cerebras.net/signup
-- OpenRouter: https://openrouter.ai/signup
-- Cohere:https://cohere.com/ (?)
-- NVIDIA NIM: https://build.nvidia.com/explore/discover (?)
-- Mistral (La Plateforme | Codestral): https://console.mistral.ai/ (NON-RU NUMBER REQUIRED)
-- HF Inference Prov. https://huggingface.co/docs/inference-providers/en/index (?)
-- Cloudflare Workers AI https://developers.cloudflare.com/workers-ai/ (?)
+`penalty` is configurable via `ROUTING_RECENT_REQUEST_PENALTY`.
 
-### Setup local models for fallback (optional)
-- Ollama: https://ollama.com/
+## Supported Endpoints
 
-## Checking yaml config by your own
+- `POST /v1/chat/completions`
+- `POST /v1/completions`
+- `GET /v1/models`
+- `POST /v1/embeddings`
+- `POST /v1/responses`
+- `POST /v1/images/generations`
+- `POST /v1/images/edits`
+- `POST /v1/audio/transcriptions`
+- `POST /v1/audio/speech`
+- `POST /v1/batches`
+- `POST /v1/messages`
+- `GET|POST /v1/realtime/openai`
+- `POST /v1/model/load`
+- `POST /v1/model/unload`
+- `POST /v1/model/download`
+- `GET /v1/model/download-status`
+- `POST /utils/transform_request`
+- `POST /invocations` (SageMaker-style shim)
+- `GET /healthz`
 
-1. Gemini 
-    - All supported models list:
-    ```python
-    from google import genai
+## Configuration
 
-    client = genai.Client(api_key="API_KEY")
+### 1. Environment (`.env`)
 
-    print("List of models that support generateContent:\n")
-    for m in client.models.list():
-        for action in m.supported_actions:
-            if action == "generateContent":
-                print(m.name)
+Required for real provider calls:
 
-    print("List of models that support embedContent:\n")
-    for m in client.models.list():
-        for action in m.supported_actions:
-            if action == "embedContent":
-                print(m.name)
-    ```
-    - Model info:
-    ```python
-    print(str(client.models.get(model="models/gemini-embedding-001")))
-    ```
-    - Rate limits: [aistudio.google.com/usage](https://aistudio.google.com/usage)
-    - Models availability for free tier: [ai.google.dev/gemini-api/docs/pricing](https://ai.google.dev/gemini-api/docs/pricing)
+- `GEMINI_API_KEY`
+- `GROQ_API_KEY`
+- `OPENROUTER_API_KEY`
+- ...other provider keys as needed
 
+Optional gateway settings:
+
+- `GATEWAY_API_KEY` (if set, requests must include bearer/x-api-key)
+- `PROVIDERS_CONFIG_PATH` (default: `config.yaml`)
+- `REQUEST_TIMEOUT_SECONDS` (default: `90`)
+- `ROUTING_RECENT_REQUEST_PENALTY` (default: `200`)
+- Redis settings (`REDIS_HOST`, `REDIS_PORT`, `REDIS_DB`, `REDIS_PASSWORD`)
+
+### 2. Provider YAML (`config.yaml`)
+
+The gateway reads your current list-of-dicts provider format (same shape as your existing file).
+
+If `config.yaml` is missing, it falls back to `config-example.yaml`.
+
+## Run
+
+```bash
+pip install -r requirements.txt
+uvicorn main:app --reload
+```
+
+Server defaults: `0.0.0.0:8000`.
+
+## Notes
+
+- For providers with OpenAI-compatible base URLs, requests are forwarded mostly as-is.
+- If a request does not specify `model`, the gateway injects a provider default model for that endpoint family.
+- Redis is optional. If unavailable, in-memory counters are used.
