@@ -12,13 +12,6 @@ class Settings(BaseSettings):
     host: str = "0.0.0.0"
     port: int = 8000
 
-    # redis
-    redis_host: str = "localhost"
-    redis_port: int = 6379
-    redis_db: int = 0
-    redis_password: SecretStr | None = None
-    redis_prefix: str = "freellm"
-
     # gateway
     gateway_api_key: SecretStr | None = None
     providers_config_path: str = "config.yaml"
@@ -56,12 +49,6 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         extra="ignore"
     )
-
-    @property
-    def redis_url(self) -> str:
-        if self.redis_password:
-            return f"redis://:{self.redis_password.get_secret_value()}@{self.redis_host}:{self.redis_port}/{self.redis_db}"
-        return f"redis://{self.redis_host}:{self.redis_port}/{self.redis_db}"
 
 
 @lru_cache

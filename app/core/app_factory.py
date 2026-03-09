@@ -15,7 +15,7 @@ from config import settings
 
 def create_app() -> FastAPI:
     provider_registry = ProviderRegistry(settings)
-    quota_store = QuotaStore(settings.redis_url, prefix=settings.redis_prefix)
+    quota_store = QuotaStore()
     gateway_service = GatewayService(
         settings=settings,
         provider_registry=provider_registry,

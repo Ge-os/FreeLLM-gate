@@ -9,7 +9,7 @@ It loads providers from `config.yaml`, chooses the best upstream using quota-awa
 - OpenAI-compatible proxy endpoints (`/v1/...`)
 - Provider registry loaded from your YAML config
 - L7 routing/load balancing across providers and key slots
-- Quota/rate-limit tracking (Redis if available, in-memory fallback)
+- Quota/rate-limit tracking (in-memory)
 - Optional gateway auth middleware (`GATEWAY_API_KEY`)
 - `/utils/transform_request` endpoint for route/debug preview
 
@@ -60,7 +60,6 @@ Optional gateway settings:
 - `PROVIDERS_CONFIG_PATH` (default: `config.yaml`)
 - `REQUEST_TIMEOUT_SECONDS` (default: `90`)
 - `ROUTING_RECENT_REQUEST_PENALTY` (default: `200`)
-- Redis settings (`REDIS_HOST`, `REDIS_PORT`, `REDIS_DB`, `REDIS_PASSWORD`)
 
 ### 2. Provider YAML (`config.yaml`)
 
@@ -77,8 +76,20 @@ uvicorn main:app --reload
 
 Server defaults: `0.0.0.0:8000`.
 
+### Docker Run
+
+```bash
+docker run --rm \
+  -p 8000:8000 \
+  --env-file .env \
+  -v "$(pwd)/config.yaml:/app/config.yaml:ro" \
+  <your-dockerhub-image>:latest
+```
+
+This is enough to run the gateway: provide `config.yaml` plus your API keys in `.env`.
+
 ## Notes
 
 - For providers with OpenAI-compatible base URLs, requests are forwarded mostly as-is.
 - If a request does not specify `model`, the gateway injects a provider default model for that endpoint family.
-- Redis is optional. If unavailable, in-memory counters are used.
+- Quota counters are in-memory and reset on process restart.
