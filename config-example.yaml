@@ -1,0 +1,96 @@
+name: LLM Config
+version: 1.0.0
+schema: v1
+
+gemini:
+  - apiKeys: []
+  # same order as fallback: from first
+  # more at ai.google.dev/gemini-api/docs/pricing and aistudio.google.com/usage
+  - models:
+    - gemini-2.0-flash:
+      - input_token_limit: 1048576
+      - output_token_limit: 8192
+
+      - default_temperature: 1.0
+      - max_temperature: 2.0
+      - default_top_p: 0.95
+      - default_top_k: 40
+
+      - thinking: False
+      - vision: True
+      - tools: True
+
+      - requests_per_minute: 5
+      - token_per_minute: 250000
+      - requests_per_day: 20
+      - request_per_month: None
+
+    - gemini-2.5-flash
+    - gemini-2.5-pro
+    - gemini-2.0-flash
+    - gemini-2.0-flash-001
+    - gemini-2.0-flash-lite-001
+    - gemini-2.0-flash-lite
+    - gemini-2.5-flash-preview-tts
+    - gemini-2.5-pro-preview-tts
+    - gemma-3-1b-it
+    - gemma-3-4b-it
+    - gemma-3-12b-it
+    - gemma-3-27b-it
+    - gemma-3n-e4b-it
+    - gemma-3n-e2b-it
+    - gemini-flash-latest
+    - gemini-flash-lite-latest
+    - gemini-pro-latest
+    - gemini-2.5-flash-lite
+    - gemini-2.5-flash-preview-09-2025
+    - gemini-2.5-flash-lite-preview-09-2025
+    - gemini-3-pro-preview
+    - gemini-3-flash-preview
+  - embedding-models:
+    - gemini-embedding-001:
+      - input_token_limit: 2048
+
+groq:
+  - apiKeys: []
+  # same order as fallback: from first
+  - text-models:
+    - meta-llama/llama-3.3-70b-instruct:free
+    - deepseek/deepseek-r1
+    - openai/gpt-oss-120b
+    - z-ai/glm-4.5-air:free
+  - tool-models: 
+  - vision-models:
+  - embedding-models:
+  - stt-models:
+  - tts-models:
+
+cerebras:
+  - apiKeys: []
+  # same order as fallback: from first
+  - text-models:
+    - meta-llama/llama-3.3-70b-instruct:free
+    - deepseek/deepseek-r1
+    - openai/gpt-oss-120b
+    - z-ai/glm-4.5-air:free
+  - tool-models: 
+  - vision-models:
+  - embedding-models:
+  - stt-models:
+  - tts-models:
+
+openrouter: 
+  - apiKeys: []
+  # same order as fallback: from first
+  - text-models:
+    - meta-llama/llama-3.3-70b-instruct:free
+    - deepseek/deepseek-r1
+    - openai/gpt-oss-120b
+    - z-ai/glm-4.5-air:free
+  - tool-models: 
+  - vision-models:
+  - embedding-models:
+  - stt-models:
+  - tts-models:
+
+ollama:
